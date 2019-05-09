@@ -11,10 +11,9 @@ int tinkerDigitalWrite(String command);
 int tinkerAnalogRead(String pin);
 int tinkerAnalogWrite(String command);
 
-// setup() runs once, when the device is first turned on.
-void setup() {
-  // Put initialization like pinMode and begin functions here.
-
+/* This function is called once at start up ----------------------------------*/
+void setup()
+{
 	//Setup the Tinker application here
 
 	//Register all the Tinker functions
@@ -23,12 +22,13 @@ void setup() {
 	Particle.function("analogread", tinkerAnalogRead);
 	Particle.function("analogwrite", tinkerAnalogWrite);
 
-
 }
 
-// loop() runs over and over again, as quickly as it can execute.
-void loop() {
-  // The core of your code will likely live here.
+/* This function loops forever --------------------------------------------*/
+void loop()
+{
+	//This will run in a loop
+}
 
 /*******************************************************************************
  * Function Name  : tinkerDigitalRead
@@ -147,5 +147,5 @@ int tinkerAnalogWrite(String command)
 		return 1;
 	}
 	else return -2;
-
 }
+
