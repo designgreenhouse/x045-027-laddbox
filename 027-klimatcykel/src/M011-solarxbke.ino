@@ -1,7 +1,7 @@
 /*
  * Project 027-klimatcykel
  * Description:
- * Author:
+ * Author: Lars Lindmark
  * Date:
  */
 
