@@ -11,3 +11,4 @@ Testkod som körs på x045 på Particle Photon
 ## Integrationer
     Inget än
 
+Testar kommuniktion med slack
