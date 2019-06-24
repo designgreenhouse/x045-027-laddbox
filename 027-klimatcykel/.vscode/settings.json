@@ -5,5 +5,8 @@
         "*.ino": "cpp"
     },
     "particle.targetDevice": "33002d000947373034353237",
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "particle.targetPlatform": "photon",
+    "cortex-debug.openocdPath": "/Users/jido/.particle/toolchains/openocd/0.10.0-particle.1/bin/openocd",
+    "particle.firmwareVersion": "1.0.1"
 }
