@@ -4,7 +4,7 @@
     "files.associations": {
         "*.ino": "cpp"
     },
-    "particle.targetDevice": "33002d000947373034353237",
+    "particle.targetDevice": "250024000747363339343638",
     "C_Cpp.errorSquiggles": "Disabled",
     "particle.targetPlatform": "photon",
     "cortex-debug.openocdPath": "/Users/jido/.particle/toolchains/openocd/0.10.0-particle.1/bin/openocd",

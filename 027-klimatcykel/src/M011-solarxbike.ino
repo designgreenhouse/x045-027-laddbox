@@ -1,5 +1,5 @@
 PRODUCT_ID(5002);
-PRODUCT_VERSION(1);
+PRODUCT_VERSION(0.2);
 /*
  * Project 027-klimatcykel
  * Produkt: ModulX
@@ -18,26 +18,27 @@ int tinkerAnalogRead(String pin);
 int tinkerAnalogWrite(String command);
 
 /* Function prototypes solarXbike --------------------------------------------*/
-int analogvalue;
-float temp;
-float batteryVoltage;
-int offSet; // Amp sensor Offset the value from the middle of register
+int analogvalue; // (A0) analog Volt sensor
 int sensorValue; // (A1) anolog Amp sensor
-const float Vpp = 0.001221; // 5v/1023 = Vpp = 0.00488758553
-float voltage; //Voltage reading at sensor
-float chargeAmp; //Ampere reading
-float solarPower; // Power (W) from solarcell
+float voltage; // Voltage reading at input
+// Orginal värde: const float Vpp = 0.001221; // Arduino 5v/1023 = Vpp = 0.00488758553 | Particle 5V/4095 = 0,001221 3,3V/4095 = 0,00080586
+const float Vpp = 0.00080586; // Arduino 5v/1023 = Vpp = 0.00488758553 | Particle 5V/4095 = 0,001221 3,3V/4095 = 0.00080586  | 5V/3070 = 0.00162866 | 3,3v/3070=0.00107492
+float temp;
+int offSet; // Amp sensor Offset the value from the middle of register
+float x053_batteryVoltage;
+float x053_chargeAmp; //Ampere reading
+float x053_solarPower; // Power (W) from solarcell
 
 /* Function prototypes MQTT --------------------------------------------*/
 void callback(char *topic, byte *payload, unsigned int length);
 MQTT client("skinny.skycharts.net", 1883, callback);
 
-PollingTimer batteryTimer(360000);
+PollingTimer batteryTimer(36000);
 volatile int forceReading = 1;
 
 void mqttPublish(char *event, String msg) {
     if (!client.isConnected()) {
-         client.connect("x042_" + String(Time.now()));
+         client.connect("x053_" + String(Time.now()));
     }
     if (client.isConnected()) {
         client.publish(event, msg);
@@ -57,6 +58,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     forceReading = 1;
 }
 
+
 /* This function is called once at start up ----------------------------------*/
 void setup()
 {
@@ -71,9 +73,10 @@ void setup()
 	//Setup Particle I/O for sensors on pin A0 and A1
     pinMode(D3, OUTPUT); // SmartPower relä, slår till relä vid låg spänning
     pinMode(A0, INPUT); // Analog 0 Input for VOLT?
+    pinMode(A1, INPUT); // Analog 1 Input for Amp sensor
 
     // MQTT connect to the server(unique id by Time.now())
-    client.connect("x042_" + String(Time.now()));
+    client.connect("x053_" + String(Time.now()));
     if (client.isConnected()) {
         client.subscribe("updateStats");
     }
@@ -88,36 +91,63 @@ void loop()
 {
 	//This will run in a loop
 
-	// calculating power from sensor readings A0 and A1
-    solarPower = batteryVoltage * chargeAmp; 
+
+    
+       if (client.isConnected()) {
+        client.loop();
+    }
+
+   int takeReading = forceReading || batteryTimer.interval();
+   
+   if (!takeReading) {
+       return;
+   }
+
+  // clear flag
+  if (forceReading > 0) {
+    forceReading--;
+  }
+measureVA();
 
 	// Publicera till particle cloud
-  	String temp2 = String(batteryVoltage,1); // store voltage in "batteryVoltage" string
-  	Particle.publish("batteryVoltage", temp2, PRIVATE); // publish to cloud
-  	String temp4 = String(chargeAmp,1); // store ampere in "chargeAmp" string
-  	Particle.publish("chargeAmp", temp4, PRIVATE); // publish to cloud
-  	String temp5 = String(solarPower,1); // store ampere in "chargeAmp" string
-  	Particle.publish("solarPower", temp5, PRIVATE); // publish to cloud
+  	String temp2 = String(x053_batteryVoltage,1); // store voltage in "batteryVoltage" string
+  	Particle.publish("x053_batteryVoltage", temp2, PRIVATE); // publish to cloud
+  	String temp4 = String(x053_chargeAmp,1); // store ampere in "chargeAmp" string
+  	Particle.publish("x053_chargeAmp", temp4, PRIVATE); // publish to cloud
+    x053_solarPower = x053_batteryVoltage * x053_chargeAmp; // calculating power from sensor readings A0 and A1
+  	String temp5 = String(x053_solarPower,1); // store ampere in "chargeAmp" string
+  	Particle.publish("x053_solarPower", temp5, PRIVATE); // publish to cloud
   
- 	mqttPublish("batteryVoltage", temp2);
-  	mqttPublish("chargeAmp" , temp4);
-  	mqttPublish("solarPower" , temp5);
+ 	mqttPublish("x053_batteryVoltage", temp2);
+  	mqttPublish("x053_chargeAmp" , temp4);
+  	mqttPublish("x053_solarPower" , temp5);
 
+    // delay (3600);
+    //delay (360000); // 5 minute delay
 }
-void measureVA() {
 
+
+
+
+
+void measureVA() 
+{
 //Version 3 (A1 - 550) * (5v/1023 = 0.00488758553 =Vpp) / 0.066 känslighet sensor
     sensorValue = analogRead(A1);
-    offSet = sensorValue - 3070;
-    voltage = offSet * Vpp;
-    chargeAmp = voltage / 0.066;
+    offSet = sensorValue - 2530; //ursprungsvärde 3070 | testvärde 4096/2= 2048
+    voltage = offSet * Vpp; //Vpp = konstant för att översätta spänning till skala
+    x053_chargeAmp = voltage / 0.066;
 
   // check to see what the value of the A0 input is and store it in the int(heltal) variable analogvalue
   // batteryVoltage är ett flyttal som visar decimaler. Formel : batteryVoltage = A0 * 2 / 112
     analogvalue = analogRead(A0);
     temp = analogvalue*2;
-    batteryVoltage = temp/112;
+    x053_batteryVoltage = temp/75; //Standard calibrering 112
 // 3035=54,2v  3012=53,8V : 3007= 53,7V : 3001 = 53,6V :2996= 53,5 :  2938 = 52V : 2800 = 50v : 2700 = 48,21
+
+
+    
+    // Control the relay depending on value reading
 
    if (analogvalue<2700) {
    // if (batteryVoltage>53) {2968
@@ -258,4 +288,5 @@ int tinkerAnalogWrite(String command)
 	}
 	else return -2;
 }
+
 
